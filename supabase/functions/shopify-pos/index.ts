@@ -51,7 +51,9 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Usa POST" }, 405);
 
   // Solo usuarios con sesión iniciada en la página.
-  const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+  // La página envía su clave pública en el encabezado apikey (sirve con claves anon o publishable).
+  const apikey = req.headers.get("apikey") ?? Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  const sb = createClient(Deno.env.get("SUPABASE_URL")!, apikey, {
     global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
   });
   const { data: { user } } = await sb.auth.getUser();
