@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cierre de Caja Uniformes Caracas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a working sheet — header strip with the day's parameters, the method-by-method reconciliation as the main table, cash drawer and summary beside it, history below. */
+:root{
+  --bg:#f3f5f7; --surface:#ffffff; --ink:#14212b; --muted:#5d6b76; --line:#d9e0e6;
+  --accent:#1f4fa3; --accent-ink:#ffffff; --accent-soft:#e6edf9;
+  --ok:#1d7a4f; --ok-soft:#e3f3ea; --warn:#a2610b; --warn-soft:#fbf0dc; --bad:#b3261e; --bad-soft:#fbe6e4;
+  --f-display:"Archivo",system-ui,sans-serif; --f-body:"Public Sans",system-ui,sans-serif; --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f161c; --surface:#17212a; --ink:#e6edf2; --muted:#93a3b0; --line:#2a3743;
+  --accent:#7aa6ef; --accent-ink:#0b1420; --accent-soft:#1c2c45;
+  --ok:#5cc996; --ok-soft:#14321f; --warn:#e8ad55; --warn-soft:#3a2a10; --bad:#f08a82; --bad-soft:#3d1a18; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f161c; --surface:#17212a; --ink:#e6edf2; --muted:#93a3b0; --line:#2a3743;
+  --accent:#7aa6ef; --accent-ink:#0b1420; --accent-soft:#1c2c45;
+  --ok:#5cc996; --ok-soft:#14321f; --warn:#e8ad55; --warn-soft:#3a2a10; --bad:#f08a82; --bad-soft:#3d1a18; color-scheme:dark}
+*{box-sizing:border-box}
+html{color-scheme:light}
+body{margin:0}
+[hidden]{display:none!important}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+h1,h2{font-family:var(--f-display);margin:0;text-wrap:balance}
+h1{font-size:1.65rem;font-weight:800;letter-spacing:-.01em}
+h2{font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px}
+header p{margin:4px 0 0;color:var(--muted)}
+.params{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+input,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0}
+input:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+input[type=number]{font-family:var(--f-mono);text-align:right}
+.params input{width:150px}
+.params input#resp{width:180px}
+button{font:inherit;font-weight:600;border-radius:8px;padding:9px 14px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button:disabled{opacity:.55;cursor:default}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.msg{font-size:.88rem;color:var(--muted)}
+.msg.err{color:var(--bad)} .msg.ok{color:var(--ok)}
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:620px}
+th{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:right;font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line)}
+th:first-child{text-align:left}
+td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:right;vertical-align:middle}
+td:first-child{text-align:left}
+td input{width:120px}
+.cz{display:grid;grid-template-columns:auto 110px;gap:4px 6px;align-items:center;justify-content:end}
+.cz label{font-size:.72rem;color:var(--muted)}
+.cz input{width:110px}
+td [data-hint]{max-width:260px;margin-left:auto;text-align:right}
+tr.info td{color:var(--muted)}
+.mname{font-weight:600}
+.sub{display:block;font-size:.76rem;color:var(--muted);font-weight:400}
+.pill{display:inline-block;font-size:.72rem;font-weight:700;padding:3px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.p-ok{background:var(--ok-soft);color:var(--ok)} .p-bad{background:var(--bad-soft);color:var(--bad)} .p-warn{background:var(--warn-soft);color:var(--warn)} .p-na{background:var(--accent-soft);color:var(--accent)}
+.neg{color:var(--bad)} .pos{color:var(--warn)}
+.kv{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.kv span:first-child{color:var(--muted)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.two input{width:100%}
+.egr{display:flex;flex-direction:column;gap:8px}
+.erow{display:grid;grid-template-columns:minmax(0,1fr) 100px 34px;gap:6px}
+.erow button{padding:6px 0}
+.total{border-top:2px solid var(--ink);padding-top:10px;font-family:var(--f-display);font-weight:800;font-size:1.1rem}
+.verdict{border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:4px}
+.verdict.ok{background:var(--ok-soft);color:var(--ok)} .verdict.bad{background:var(--bad-soft);color:var(--bad)} .verdict.warn{background:var(--warn-soft);color:var(--warn)}
+.verdict b{font-family:var(--f-display);font-size:1.35rem}
+textarea{width:100%;min-height:64px;resize:vertical}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.hist{display:flex;flex-direction:column}
+.hrow{display:grid;grid-template-columns:120px minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:10px 4px;border-bottom:1px solid var(--line);cursor:pointer;background:none;border-left:0;border-right:0;border-top:0;border-radius:0;text-align:left;font-weight:400}
+.hrow:hover{background:var(--accent-soft)}
+.hrow.cur{background:var(--accent-soft)}
+@media (max-width:560px){.hrow{grid-template-columns:1fr auto}.hrow .hide-s{display:none}}
+.empty{color:var(--muted);padding:8px 0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<style>
+.login{max-width:380px;margin:12vh auto 0;display:flex;flex-direction:column;gap:14px}
+.login form{display:flex;flex-direction:column;gap:12px}
+.login input{width:100%}
+.who{display:flex;gap:10px;align-items:center;font-size:.85rem;color:var(--muted)}
+.who button{padding:5px 10px;font-size:.82rem}
+</style>
+<style>
+#printSheet{display:none}
+@media print{
+  @page{size:letter;margin:12mm 12mm 14mm}
+  :root{padding:0!important;color-scheme:light}
+  body{background:#fff!important;color:#111!important;padding:0!important;font-size:10pt}
+  #app,#login{display:none!important}
+  #printSheet{display:block;font-family:"Public Sans",system-ui,sans-serif;color:#111}
+  .ph{display:flex;align-items:center;gap:14px;border-bottom:2.5px solid #1f4fa3;padding-bottom:10px}
+  .plogo{width:64px;height:64px;object-fit:contain}
+  .pid{flex:1;font-size:8.5pt;color:#444;line-height:1.35}
+  .pname{font-family:"Archivo",sans-serif;font-weight:800;font-size:16pt;color:#111;letter-spacing:.02em}
+  .pdoc{text-align:right;font-size:9pt;color:#333}
+  .ptitle{font-family:"Archivo",sans-serif;font-weight:800;font-size:12pt;color:#1f4fa3;text-transform:uppercase;letter-spacing:.05em}
+  .pmono,.pt td:not(:first-child),.pres b{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
+  .pmeta{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0 6px;font-size:9.5pt}
+  .pmeta span,.pres span{display:block;font-size:7.5pt;text-transform:uppercase;letter-spacing:.06em;color:#666}
+  #printSheet h3{font-family:"Archivo",sans-serif;font-size:9.5pt;text-transform:uppercase;letter-spacing:.06em;color:#1f4fa3;margin:14px 0 5px}
+  .pt{width:100%;border-collapse:collapse;min-width:0;font-size:9pt}
+  .pt th{background:#1f4fa3;color:#fff;font-size:7.5pt;padding:5px 6px;text-align:right;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .pt th:first-child{text-align:left}
+  .pt td{padding:4px 6px;border-bottom:1px solid #ddd;text-align:right}
+  .pt td:first-child{text-align:left}
+  .pt tfoot td{border-top:1.5px solid #111;border-bottom:0;font-weight:700}
+  .pk td{padding:3px 6px}
+  .pcols{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .neg{color:#b3261e}.pos{color:#a2610b}
+  .pnote{font-size:8.5pt;color:#444;margin:6px 0}
+  .pnotes{font-size:9.5pt;white-space:pre-wrap;border:1px solid #ddd;padding:8px;border-radius:4px;margin:0}
+  .pres{display:flex;gap:30px;margin-top:14px;padding:10px 12px;border:1.5px solid #111;border-radius:4px}
+  .pres b{font-size:12pt}
+  .pfirmas{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:46px;font-size:9pt;color:#444;text-align:center}
+  .pfirmas div{border-top:1px solid #111;padding-top:5px}
+  .pf{margin-top:20px;font-size:7.5pt;color:#888;text-align:right}
+  .ph,.pres,.pfirmas{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<section class="login panel" id="login" hidden aria-labelledby="t-login">
+  <h1 id="t-login">Cierre de caja</h1>
+  <p class="msg">Uniformes Caracas · entra con tu correo y clave.</p>
+  <form id="loginForm">
+    <label class="f" for="lEmail">Correo<input type="email" id="lEmail" autocomplete="username" required></label>
+    <label class="f" for="lPass">Clave<input type="password" id="lPass" autocomplete="current-password" required></label>
+    <button class="primary" type="submit" id="lBtn">Entrar</button>
+  </form>
+  <div class="msg" id="lMsg"></div>
+</section>
+
+<section id="printSheet" aria-hidden="true"></section>
+
+<div class="wrap" id="app" hidden>
+  <header>
+    <div>
+      <h1>Cierre de caja</h1>
+      <p>Uniformes Caracas · tienda física · ventas del POS contra lo que hay en caja y en banco</p>
+    </div>
+    <div class="params">
+      <label class="f" for="fecha">Fecha<input type="date" id="fecha"></label>
+      <label class="f" for="tasa">Tasa del día (Bs/$)<input type="number" id="tasa" step="any" inputmode="decimal" placeholder="0,00"></label>
+      <label class="f" for="resp">Responsable<input type="text" id="resp" placeholder="Nombre de quien cierra"></label>
+      <div class="who"><span id="who"></span><button type="button" id="logout">Salir</button></div>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="panel" aria-labelledby="t-metodos">
+      <div class="bar">
+        <h2 id="t-metodos">Por forma de pago</h2>
+        <button class="primary" id="btnShopify" type="button">Traer ventas de Shopify</button>
+      </div>
+      <div class="msg" id="shopMsg">Trae las ventas del POS del día, o escribe los montos del reporte a mano en la columna Sistema.</div>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Método</th><th>Sistema ($)</th><th>Real contado</th><th>Real ($)</th><th>Diferencia</th><th>Estado</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <div class="msg">Los métodos en bolívares se cuentan en Bs y se convierten con la tasa del día. Se considera cuadrado si la diferencia es menor a $0,50.</div>
+    </section>
+
+    <div style="display:flex;flex-direction:column;gap:18px;min-width:0">
+      <section class="panel" aria-labelledby="t-efectivo">
+        <h2 id="t-efectivo">Gaveta de efectivo</h2>
+        <div class="two">
+          <label class="f" for="fondoUsd">Fondo inicial $<input type="number" id="fondoUsd" step="any" inputmode="decimal" placeholder="0"></label>
+          <label class="f" for="fondoBs">Fondo inicial Bs<input type="number" id="fondoBs" step="any" inputmode="decimal" placeholder="0"></label>
+        </div>
+        <div class="egr">
+          <div class="bar"><span class="msg">Salidas de efectivo (gastos, retiros)</span><button type="button" id="addEgr">Agregar salida</button></div>
+          <div id="egrList" class="egr"></div>
+        </div>
+        <div class="two">
+          <label class="f" for="contUsd">Contado al cierre $<input type="number" id="contUsd" step="any" inputmode="decimal" placeholder="0"></label>
+          <label class="f" for="contBs">Contado al cierre Bs<input type="number" id="contBs" step="any" inputmode="decimal" placeholder="0"></label>
+        </div>
+        <div class="kv"><span>Debe haber en gaveta</span><span class="num" id="efEsperado">$0.00</span></div>
+        <div class="kv"><span>Hay en gaveta</span><span class="num" id="efReal">$0.00</span></div>
+      </section>
+
+      <section class="panel" aria-labelledby="t-res">
+        <h2 id="t-res">Resultado</h2>
+        <div class="kv"><span>Ventas POS del día</span><span class="num" id="rVentas">$0.00</span></div>
+        <div class="kv"><span>Pedidos</span><span class="num" id="rPedidos">0</span></div>
+        <div class="kv"><span>Por cobrar a Cashea</span><span class="num" id="rCashea">$0.00</span></div>
+        <div class="kv"><span>Salidas de efectivo</span><span class="num" id="rEgr">$0.00</span></div>
+        <div class="kv total"><span>Diferencia neta</span><span class="num" id="rDif">$0.00</span></div>
+        <div class="verdict warn" id="verdict"><b>Sin datos</b><span>Trae las ventas y cuenta la caja.</span></div>
+        <label class="f" for="notas">Notas<textarea id="notas" placeholder="Explica cualquier diferencia: vuelto mal dado, pago pendiente por confirmar…"></textarea></label>
+        <div class="actions">
+          <button class="primary" type="button" id="btnGuardar">Guardar cierre</button>
+          <button type="button" id="btnCopiar">Copiar resumen</button>
+          <button type="button" id="btnExcel">Exportar Excel</button>
+          <button type="button" id="btnPdf">Imprimir / PDF</button>
+        </div>
+        <div class="msg" id="saveMsg"></div>
+      </section>
+    </div>
+  </div>
+
+  <section class="panel" aria-labelledby="t-hist">
+    <h2 id="t-hist">Cierres guardados</h2>
+    <div class="hist" id="hist"><div class="empty">Aún no hay cierres guardados. El primero aparecerá aquí al pulsar Guardar cierre.</div></div>
+  </section>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="config.js"></script>
+<script>
+const TOL = 0.5;
+const METHODS = [
+  {id:"efectivo", label:"Efectivo", cur:"cash", sub:"Ver gaveta"},
+  {id:"zelle", label:"Zelle", cur:"USD"},
+  {id:"pagomovil", label:"Pago móvil", cur:"Bs"},
+  {id:"transferencia", label:"Transferencia Banesco", cur:"Bs"},
+  {id:"punto", label:"Punto de venta", cur:"Bs"},
+  {id:"cashea", label:"Cashea VE", cur:"cashea", sub:"Lo financiado se cobra a Cashea"}
+];
+const $ = id => document.getElementById(id);
+const n = v => { const x = parseFloat(v); return isFinite(x) ? x : 0; };
+const usd = v => (v<0?"−$":"$") + Math.abs(v).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const bs = v => "Bs " + v.toLocaleString("es-VE",{minimumFractionDigits:2,maximumFractionDigits:2});
+const today = () => new Date(Date.now()-4*3600e3).toISOString().slice(0,10);
+const nextDay = d => { const t = new Date(d+"T12:00:00Z"); t.setUTCDate(t.getUTCDate()+1); return t.toISOString().slice(0,10); };
+
+let state = blank(today());
+let saved = {};      // fecha -> doc
+let db = null;
+let casheaData = {}; // fecha -> {facturado, financiado, ordenes, leidoEn}, cargado por Claude desde Cashea
+
+function applyCashea(){
+  const c = casheaData[state.fecha];
+  if (!c) return false;
+  if (state.conteo.cashea_fact!==undefined && state.conteo.cashea_fact!=="") return false;
+  state.conteo.cashea_fact = String(c.facturado ?? "");
+  state.conteo.cashea_fin = String(c.financiado ?? "");
+  return true;
+}
+
+function blank(fecha){
+  return {fecha, tasa:"", responsable:"", fondoUsd:"", fondoBs:"", contUsd:"", contBs:"",
+    sistema:{}, conteo:{}, extras:[], egresos:[], notas:"", pedidos:0, fuente:"manual"};
+}
+
+function gatewayToId(g){
+  const s = (g||"").toLowerCase().trim();
+  if (s==="cash" || s.includes("efectivo")) return "efectivo";
+  if (s.includes("zelle")) return "zelle";
+  if (s.includes("pago m")) return "pagomovil";
+  if (s.includes("transfer")) return "transferencia";
+  if (s.includes("punto")) return "punto";
+  if (s.includes("cashea")) return "cashea";
+  return null;
+}
+
+function allMethods(){
+  return METHODS.concat((state.extras||[]).map(e=>({id:e, label:e, cur:"USD", sub:"Otro método"})));
+}
+
+/* ---------- table ---------- */
+function buildRows(){
+  const tb = $("rows"); tb.textContent = "";
+  for (const m of allMethods()){
+    const tr = document.createElement("tr"); tr.dataset.id = m.id;
+    if (m.cur==="none") tr.className = "info";
+    const sysVal = state.sistema[m.id] ?? "";
+    const realCell = m.cur==="cash" ? `<span class="sub">desde la gaveta</span>`
+      : m.cur==="cashea" ? `<div class="cz"><label for="c_cashea_fact">Facturado</label><input type="number" step="any" inputmode="decimal" id="c_cashea_fact" placeholder="$ Cashea" value="${state.conteo.cashea_fact ?? ""}"><label for="c_cashea_fin">Financiado</label><input type="number" step="any" inputmode="decimal" id="c_cashea_fin" placeholder="$ Cashea" value="${state.conteo.cashea_fin ?? ""}"></div>`
+      : `<input type="number" step="any" inputmode="decimal" id="c_${m.id}" placeholder="${m.cur==="Bs"?"Bs":"$"}" value="${state.conteo[m.id] ?? ""}">`;
+    tr.innerHTML = `<td><span class="mname">${esc(m.label)}</span>${m.sub?`<span class="sub">${esc(m.sub)}</span>`:m.cur==="Bs"?'<span class="sub">Contar en Bs</span>':""}</td>
+      <td><input type="number" step="any" inputmode="decimal" id="s_${m.id}" value="${sysVal}" placeholder="0.00"></td>
+      <td>${realCell}<span class="sub num" data-hint></span></td>
+      <td class="num" data-real></td><td class="num" data-dif></td><td data-st></td>`;
+    tb.appendChild(tr);
+  }
+  tb.querySelectorAll("input").forEach(inp=>inp.addEventListener("input",()=>{
+    const [k,id] = [inp.id[0], inp.id.slice(2)];
+    if (k==="s") state.sistema[id] = inp.value; else state.conteo[id] = inp.value;
+    recompute();
+  }));
+}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+function buildEgresos(){
+  const box = $("egrList"); box.textContent = "";
+  state.egresos.forEach((e,i)=>{
+    const r = document.createElement("div"); r.className="erow";
+    r.innerHTML = `<input type="text" id="eg_c_${i}" placeholder="Concepto" value="${esc(e.concepto||"")}"><input type="number" id="eg_m_${i}" step="any" inputmode="decimal" placeholder="$" value="${e.monto??""}"><button type="button" aria-label="Quitar salida">×</button>`;
+    r.children[0].addEventListener("input",ev=>{e.concepto=ev.target.value});
+    r.children[1].addEventListener("input",ev=>{e.monto=ev.target.value; recompute()});
+    r.children[2].addEventListener("click",()=>{state.egresos.splice(i,1); buildEgresos(); recompute()});
+    box.appendChild(r);
+  });
+}
+
+function calc(){
+  const tasa = n(state.tasa);
+  const egr = state.egresos.reduce((a,e)=>a+n(e.monto),0);
+  const rows = {}; let ventas=0, dif=0, faltaContar=false;
+  for (const m of allMethods()){
+    const sys = n(state.sistema[m.id]); ventas += sys;
+    let real=null, d=null;
+    if (m.cur==="cash"){
+      const esperado = n(state.fondoUsd) + (tasa? n(state.fondoBs)/tasa : 0) + sys - egr;
+      real = n(state.contUsd) + (tasa? n(state.contBs)/tasa : 0);
+      const contado = state.contUsd!=="" || state.contBs!=="";
+      d = contado ? real - esperado : null;
+      rows[m.id] = {sys, real: contado?real:null, dif:d, esperado};
+      if (!contado && sys>0) faltaContar = true;
+    } else if (m.cur==="cashea"){
+      // El POS registra la venta completa como Cashea; la inicial entró por otros métodos y aquí se compensa.
+      // Cashea factura a otra tasa que el POS, así que la inicial se pasa a dólares del POS en proporción.
+      const fact = n(state.conteo.cashea_fact), fin = n(state.conteo.cashea_fin);
+      const hasC = state.conteo.cashea_fact!==undefined && state.conteo.cashea_fact!=="" && fact>0;
+      const iniC = hasC ? Math.max(0, fact - fin) : 0;
+      const ini = hasC ? (sys ? iniC * sys / fact : iniC) : 0;
+      d = ini ? -ini : null;
+      rows[m.id] = {sys, real: sys - ini, dif: ini ? -ini : null, inicial: ini || null, iniC, fact: hasC?fact:null, fin: hasC?fin:null};
+    } else {
+      const raw = state.conteo[m.id];
+      if (raw!==undefined && raw!==""){
+        real = m.cur==="Bs" ? (tasa? n(raw)/tasa : null) : n(raw);
+        d = real===null ? null : real - sys;
+      } else if (sys>0) faltaContar = true;
+      rows[m.id] = {sys, real, dif:d};
+    }
+    if (d!==null) dif += d;
+  }
+  const cz = rows.cashea;
+  return {tasa, egr, rows, ventas, dif, faltaContar, cashea: cz.real, inicial: cz.inicial};
+}
+
+function pill(d, m, sys){
+  if (m.cur==="cashea") return '<span class="pill p-na">Por cobrar</span>';
+  if (d===null) return sys ? '<span class="pill p-warn">Por contar</span>' : '<span class="pill p-na">Sin ventas</span>';
+  if (Math.abs(d)<TOL) return '<span class="pill p-ok">Cuadra</span>';
+  return d<0 ? '<span class="pill p-bad">Faltante</span>' : '<span class="pill p-warn">Sobrante</span>';
+}
+
+function recompute(){
+  const c = calc();
+  for (const m of allMethods()){
+    const tr = document.querySelector(`tr[data-id="${CSS.escape(m.id)}"]`); if (!tr) continue;
+    const r = c.rows[m.id];
+    tr.querySelector("[data-real]").textContent = r.real===null||r.real===undefined ? "—" : usd(r.real);
+    const dc = tr.querySelector("[data-dif]");
+    dc.textContent = r.dif===null||r.dif===undefined ? "—" : usd(r.dif);
+    dc.className = "num " + (r.dif===null||r.dif===undefined||Math.abs(r.dif)<TOL ? "" : r.dif<0?"neg":"pos");
+    tr.querySelector("[data-st]").innerHTML = pill(r.dif ?? null, m, r.sys);
+    const hint = tr.querySelector("[data-hint]");
+    hint.textContent = m.cur==="Bs" && c.tasa && r.sys ? "esperado " + bs(r.sys*c.tasa) : "";
+    if (m.cur==="cashea"){
+      const cd = casheaData[state.fecha];
+      const parts = [];
+      if (r.fact!==null) parts.push(`Inicial ${usd(r.iniC)} en Cashea${r.sys && Math.abs(r.inicial - r.iniC)>=0.01 ? ` = ${usd(r.inicial)} a tasa del POS` : ""}; se compensa con el sobrante de los otros métodos.`);
+      if (cd && cd.leidoEn) parts.push(`Leído de Cashea ${new Date(cd.leidoEn).toLocaleString("es-VE",{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"})}${cd.ordenes!=null?` · ${cd.ordenes} orden${cd.ordenes==1?"":"es"}`:""}.`);
+      hint.textContent = parts.join(" ");
+    }
+  }
+  const ef = c.rows.efectivo;
+  $("efEsperado").textContent = usd(ef.esperado);
+  $("efReal").textContent = ef.real===null ? "—" : usd(ef.real);
+  $("rVentas").textContent = usd(c.ventas);
+  $("rPedidos").textContent = state.pedidos || "—";
+  $("rCashea").textContent = usd(c.cashea);
+  $("rEgr").textContent = usd(c.egr);
+  const rd = $("rDif"); rd.textContent = usd(c.dif);
+  rd.className = "num " + (Math.abs(c.dif)<TOL?"":c.dif<0?"neg":"pos");
+  const v = $("verdict");
+  const needsTasa = !c.tasa && ["pagomovil","transferencia","punto"].some(id=>state.conteo[id]) ;
+  let cls, t, s;
+  if (c.ventas===0 && !state.contUsd){ cls="warn"; t="Sin datos"; s="Trae las ventas y cuenta la caja."; }
+  else if (needsTasa){ cls="warn"; t="Falta la tasa"; s="Escribe la tasa del día para convertir los montos en bolívares."; }
+  else if (c.faltaContar){ cls="warn"; t="Cierre incompleto"; s="Hay métodos con ventas que aún no se han contado."; }
+  else if (Math.abs(c.dif)<TOL){ cls="ok"; t="Caja cuadrada"; s="Lo contado coincide con lo vendido."; }
+  else if (c.dif<0){ cls="bad"; t="Faltante de " + usd(-c.dif); s="Revisa los métodos marcados en rojo."; }
+  else { cls="warn"; t="Sobrante de " + usd(c.dif); s="Hay más dinero del registrado; revisa ventas sin cargar en el POS."; }
+  v.className = "verdict " + cls; v.innerHTML = `<b>${esc(t)}</b><span>${esc(s)}</span>`;
+  return {c, estado: cls==="ok"?"cuadrado":t};
+}
+
+/* ---------- load / bind ---------- */
+function loadState(s){
+  state = Object.assign(blank(s.fecha), JSON.parse(JSON.stringify(s)));
+  $("fecha").value = state.fecha; $("tasa").value = state.tasa; $("resp").value = state.responsable;
+  $("fondoUsd").value = state.fondoUsd; $("fondoBs").value = state.fondoBs;
+  $("contUsd").value = state.contUsd; $("contBs").value = state.contBs; $("notas").value = state.notas;
+  applyCashea();
+  buildRows(); buildEgresos(); recompute(); renderHist();
+  $("btnGuardar").textContent = saved[state.fecha] ? "Actualizar cierre" : "Guardar cierre";
+  $("saveMsg").textContent = saved[state.fecha] ? "Cierre guardado el " + new Date(saved[state.fecha].guardadoEn).toLocaleString("es-VE") + (saved[state.fecha].responsable? " por " + saved[state.fecha].responsable : "") : "";
+  $("saveMsg").className = "msg";
+}
+[["tasa","tasa"],["resp","responsable"],["fondoUsd","fondoUsd"],["fondoBs","fondoBs"],["contUsd","contUsd"],["contBs","contBs"],["notas","notas"]]
+  .forEach(([id,k])=>$(id).addEventListener("input",e=>{state[k]=e.target.value; recompute()}));
+$("fecha").addEventListener("change",e=>{
+  const f = e.target.value || today();
+  const keep = {tasa: state.tasa, responsable: state.responsable};
+  loadState(saved[f] ? saved[f] : Object.assign(blank(f), keep));
+  $("shopMsg").className="msg"; $("shopMsg").textContent = "Trae las ventas del POS del " + fmtFecha(f) + ", o escribe los montos a mano.";
+});
+$("addEgr").addEventListener("click",()=>{state.egresos.push({concepto:"",monto:""}); buildEgresos(); const l=$("egrList").lastElementChild; l && l.querySelector("input").focus()});
+function fmtFecha(f){ return new Date(f+"T12:00:00Z").toLocaleDateString("es-VE",{weekday:"long",day:"numeric",month:"long",timeZone:"UTC"}); }
+
+/* ---------- Supabase ---------- */
+const cfg = window.CIERRE_CONFIG || {};
+const sb = (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase)
+  ? window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey) : null;
+
+/* ---------- Shopify (vía función de Supabase) ---------- */
+async function traerShopify(){
+  const btn = $("btnShopify"), msg = $("shopMsg");
+  const f = state.fecha;
+  btn.disabled = true; msg.className="msg"; msg.textContent = "Leyendo ventas del POS…";
+  const { data, error } = await sb.functions.invoke("shopify-pos", { body: { fecha: f } });
+  btn.disabled = false;
+  if (error){
+    let detail = "";
+    try { const j = await error.context.json(); detail = j && j.error; } catch {}
+    msg.className = "msg err";
+    msg.textContent = detail ? detail : "No se pudo leer Shopify (" + (error.message||"error") + "). Puedes escribir los montos a mano.";
+    return;
+  }
+  const tot = {}, otros = {};
+  for (const g of (data.gateways||[])){
+    const id = gatewayToId(g.gateway);
+    if (id) tot[id] = (tot[id]||0) + n(g.monto);
+    else { const k=(g.gateway||"Otro").trim(); otros[k]=(otros[k]||0)+n(g.monto); }
+  }
+  state.sistema = {};
+  for (const m of METHODS) state.sistema[m.id] = tot[m.id] ? tot[m.id].toFixed(2) : "";
+  state.extras = Object.keys(otros);
+  for (const k of state.extras) state.sistema[k] = otros[k].toFixed(2);
+  state.pedidos = data.pedidos||0; state.fuente = "shopify";
+  buildRows(); recompute();
+  msg.className = "msg ok";
+  const p = state.pedidos;
+  msg.textContent = p ? `${p} pedido${p===1?"":"s"} del POS cargados para el ${fmtFecha(f)}. Ahora cuenta cada método.` : `No hay ventas del POS registradas el ${fmtFecha(f)}.`;
+}
+$("btnShopify").addEventListener("click", traerShopify);
+
+/* ---------- guardar / historial ---------- */
+async function guardar(){
+  const m = $("saveMsg");
+  const {c, estado} = recompute();
+  const doc = JSON.parse(JSON.stringify(state));
+  Object.assign(doc, {ventasUsd:+c.ventas.toFixed(2), diferenciaUsd:+c.dif.toFixed(2), casheaUsd:+c.cashea.toFixed(2), egresosUsd:+c.egr.toFixed(2), estado, guardadoEn:new Date().toISOString()});
+  const b = $("btnGuardar"); b.disabled = true;
+  const { error } = await sb.from("cierres").upsert({
+    fecha: state.fecha, data: doc, estado, ventas_usd: doc.ventasUsd, diferencia_usd: doc.diferenciaUsd, updated_at: doc.guardadoEn
+  });
+  b.disabled = false;
+  if (error){ m.className="msg err"; m.textContent = "No se pudo guardar: " + error.message; return; }
+  saved[state.fecha] = doc; renderHist();
+  m.className="msg ok"; m.textContent = "Cierre del " + fmtFecha(state.fecha) + " guardado.";
+  b.textContent = "Actualizar cierre";
+}
+$("btnGuardar").addEventListener("click", guardar);
+
+function renderHist(){
+  const box = $("hist"); const fechas = Object.keys(saved).sort().reverse();
+  if (!fechas.length){ box.innerHTML = `<div class="empty">Aún no hay cierres guardados. El primero aparecerá aquí al pulsar Guardar cierre.</div>`; return; }
+  box.textContent = "";
+  for (const f of fechas){
+    const d = saved[f]; const dif = n(d.diferenciaUsd);
+    const st = d.estado==="cuadrado" ? '<span class="pill p-ok">Cuadrado</span>' : dif<-TOL ? '<span class="pill p-bad">Faltante</span>' : dif>TOL ? '<span class="pill p-warn">Sobrante</span>' : '<span class="pill p-warn">Incompleto</span>';
+    const r = document.createElement("button"); r.type="button"; r.className = "hrow" + (f===state.fecha?" cur":"");
+    r.innerHTML = `<span class="num">${f}</span><span class="hide-s">${esc(d.responsable||"—")} · ventas ${usd(n(d.ventasUsd))}</span><span class="num ${Math.abs(dif)<TOL?"":dif<0?"neg":"pos"}">${usd(dif)}</span>${st}`;
+    r.addEventListener("click",()=>{ loadState(saved[f]); window.scrollTo({top:0,behavior:"smooth"}); });
+    box.appendChild(r);
+  }
+}
+
+async function cargarHist(){
+  const { data, error } = await sb.from("cierres").select("fecha,data").order("fecha",{ascending:false}).limit(400);
+  if (error){ $("hist").innerHTML = `<div class="empty">No se pudo cargar el historial: ${esc(error.message)}</div>`; return; }
+  saved = {}; for (const r of data) saved[r.fecha] = r.data;
+}
+async function cargarCashea(){
+  const { data, error } = await sb.from("cashea").select("fecha,facturado,financiado,ordenes,leido_en").order("fecha",{ascending:false}).limit(400);
+  if (error) return;
+  casheaData = {};
+  for (const r of data) casheaData[r.fecha] = {facturado:r.facturado, financiado:r.financiado, ordenes:r.ordenes, leidoEn:r.leido_en};
+}
+
+/* Para la tarea nocturna: guarda los datos de Cashea del día con la sesión de quien tiene la página abierta. */
+window.cierreAPI = {
+  async guardarCashea({fecha, facturado, financiado, ordenes}){
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha||"")) return {ok:false, error:"fecha inválida"};
+    const { error } = await sb.from("cashea").upsert({fecha, facturado:+facturado, financiado:+financiado, ordenes: ordenes==null?null:+ordenes, leido_en:new Date().toISOString()});
+    if (error) return {ok:false, error:error.message};
+    await cargarCashea(); if (applyCashea()){ buildRows(); recompute(); }
+    return {ok:true};
+  }
+};
+
+/* ---------- copiar resumen ---------- */
+$("btnCopiar").addEventListener("click", async ()=>{
+  const {c} = recompute();
+  const lines = [`*Cierre de caja · Uniformes Caracas*`, `${fmtFecha(state.fecha)}${state.responsable?" · "+state.responsable:""}`, state.tasa?`Tasa: ${state.tasa} Bs/$`:"", ""];
+  for (const m of allMethods()){
+    const r = c.rows[m.id]; if (!r.sys && r.real===null) continue;
+    const d = m.cur==="cashea" ? (r.fact!==null ? `Cashea: facturado ${usd(r.fact)}, financiado ${usd(r.fin)}, inicial ${usd(r.iniC)}` : "sin datos de Cashea") : r.dif===null ? "por contar" : Math.abs(r.dif)<TOL ? "cuadra" : usd(r.dif);
+    lines.push(`${m.label}: ${usd(r.sys)} → ${d}`);
+  }
+  if (c.egr) lines.push(`Salidas de efectivo: ${usd(c.egr)}`);
+  lines.push("", `Ventas POS: ${usd(c.ventas)}${state.pedidos?` (${state.pedidos} pedidos)`:""}`, `Diferencia neta: ${usd(c.dif)}`);
+  if (state.notas) lines.push(`Notas: ${state.notas}`);
+  const text = lines.filter((l,i,a)=>!(l===""&&a[i-1]==="")).join("\n");
+  const m = $("saveMsg");
+  try{ await navigator.clipboard.writeText(text); m.className="msg ok"; m.textContent="Resumen copiado. Pégalo en WhatsApp."; }
+  catch{ m.className="msg"; m.textContent=""; const ta=document.createElement("textarea"); ta.value=text; ta.style.minHeight="160px"; m.appendChild(ta); ta.select(); }
+});
+
+/* ---------- sesión ---------- */
+let canal = null;
+let dentro = false;
+async function entrarApp(session){
+  if (dentro) return; dentro = true;
+  $("login").hidden = true; $("app").hidden = false;
+  $("who").textContent = session.user.email || "";
+  db = sb;
+  await Promise.all([cargarHist(), cargarCashea()]);
+  loadState(saved[state.fecha] || state);
+  if (!canal){
+    canal = sb.channel("cierre-caja")
+      .on("postgres_changes", {event:"*", schema:"public", table:"cashea"}, async ()=>{ await cargarCashea(); if (applyCashea()){ buildRows(); recompute(); } })
+      .on("postgres_changes", {event:"*", schema:"public", table:"cierres"}, async ()=>{ await cargarHist(); renderHist(); })
+      .subscribe();
+  }
+}
+function mostrarLogin(texto){
+  dentro = false;
+  $("app").hidden = true; $("login").hidden = false;
+  $("lMsg").className = "msg" + (texto ? " err" : ""); $("lMsg").textContent = texto || "";
+}
+$("loginForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const b = $("lBtn"); b.disabled = true; $("lMsg").className="msg"; $("lMsg").textContent = "Entrando…";
+  const { error } = await sb.auth.signInWithPassword({ email: $("lEmail").value.trim(), password: $("lPass").value });
+  b.disabled = false;
+  if (error) mostrarLogin(error.message==="Invalid login credentials" ? "Correo o clave incorrectos." : error.message);
+});
+$("logout").addEventListener("click", async ()=>{ if (canal){ sb.removeChannel(canal); canal=null; } await sb.auth.signOut(); });
+
+loadState(blank(today()));
+if (!sb){
+  mostrarLogin("Falta configurar Supabase en config.js (URL y anon key).");
+  $("loginForm").hidden = true;
+} else {
+  sb.auth.onAuthStateChange((ev, session)=>{
+    if (session && (ev==="SIGNED_IN" || ev==="INITIAL_SESSION")) entrarApp(session);
+    else if (!session) mostrarLogin("");
+  });
+}
+</script>
+<script src="export.js"></script>
+</body>
+</html>
