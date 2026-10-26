@@ -1,8 +1,8 @@
 // Datos públicos del proyecto de Supabase (Project Settings → API).
 // La anon key está hecha para ir en la página; NUNCA pongas aquí la service_role key.
 window.CIERRE_CONFIG = {
-  supabaseUrl: "",      // ej: https://xxxxxxxx.supabase.co
-  supabaseAnonKey: "",  // anon public key
+  supabaseUrl: "https://sufhdhdzfgfbtbgnizru.supabase.co",
+  supabaseAnonKey: "sb_publishable__1_3MNfS66N6fPymHVWnZw_qVhgOyu-",  // clave publishable (pública)
 
   // Membrete del Excel y del PDF impreso. Deja vacío lo que no quieras mostrar.
   membrete: {

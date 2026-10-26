@@ -2,7 +2,7 @@
 
 Cierre de caja diario de la tienda física: trae las ventas del POS de Shopify por forma de pago, los datos de Cashea del día, y los compara con lo contado en gaveta y banco. Guarda el historial en Supabase.
 
-Página: https://arfe5555.github.io/cierre-caja/
+Página: https://jwmedicalca-rgb.github.io/cierre-caja/
 
 ## Cómo está armado
 
