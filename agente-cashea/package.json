@@ -1,0 +1,16 @@
+{
+  "name": "agente-cashea",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Lee el cierre de caja de Cashea y lo guarda en Supabase cuando la página lo pide",
+  "main": "agente.js",
+  "scripts": {
+    "start": "node agente.js",
+    "login": "node agente.js --login",
+    "prueba": "node agente.js --una-vez"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.45.4",
+    "playwright": "1.47.2"
+  }
+}
