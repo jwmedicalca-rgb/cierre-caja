@@ -46,7 +46,7 @@
   <tbody>${filas.map(({m,r})=>`<tr><td>${h(m.label)}</td><td>${usd(r.sys)}</td><td>${h(contadoTxt(m,r))}</td><td>${r.real===null||r.real===undefined?"—":usd(r.real)}</td><td class="${difCls(r.dif)}">${r.dif===null||r.dif===undefined?"—":usd(r.dif)}</td><td>${estadoTxt(r.dif, m.cur, r.sys)}</td></tr>`).join("")}</tbody>
   <tfoot><tr><td>Total</td><td>${usd(c.ventas)}</td><td></td><td></td><td class="${difCls(c.dif)}">${usd(c.dif)}</td><td></td></tr></tfoot>
 </table>
-${c.rows.cashea.fact!==null ? `<p class="pnote">Cashea: facturado ${usd(c.rows.cashea.fact)}, financiado ${usd(c.rows.cashea.fin)}, inicial ${usd(c.rows.cashea.iniC)} (a tasa del POS ${usd(c.rows.cashea.inicial||0)}). Por cobrar a Cashea: ${usd(c.cashea)}.</p>` : ""}
+${c.rows.cashea.fact!==null ? `<p class="pnote">Cashea: facturado ${usd(c.rows.cashea.fact)}, financiado ${usd(c.rows.cashea.fin)}, inicial ${usd(c.rows.cashea.iniC)}. Por cobrar a Cashea: ${usd(c.cashea)}.</p>` : ""}
 <div class="pcols">
   <div>
     <h3>Gaveta de efectivo</h3>
@@ -131,7 +131,7 @@ ${state.notas ? `<h3>Notas</h3><p class="pnotes">${h(state.notas)}</p>` : ""}
 
     if (c.rows.cashea.fact!==null){
       titulo("Cashea");
-      for (const [k,v] of [["Facturado", c.rows.cashea.fact],["Financiado (por cobrar)", c.rows.cashea.fin],["Inicial (Cashea)", c.rows.cashea.iniC],["Inicial a tasa del POS", c.rows.cashea.inicial||0]]){
+      for (const [k,v] of [["Facturado", c.rows.cashea.fact],["Financiado (por cobrar)", c.rows.cashea.fin],["Inicial (Cashea)", c.rows.cashea.iniC]]){
         ws.getCell("A"+r).value = k; ws.getCell("B"+r).value = v; ws.getCell("B"+r).numFmt = money; r++;
       }
       r++;

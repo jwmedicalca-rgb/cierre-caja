@@ -236,7 +236,7 @@ const METHODS = [
   {id:"pagomovil", label:"Pago móvil", cur:"Bs"},
   {id:"transferencia", label:"Transferencia Banesco", cur:"Bs"},
   {id:"punto", label:"Punto de venta", cur:"Bs"},
-  {id:"cashea", label:"Cashea VE", cur:"cashea", sub:"Lo financiado se cobra a Cashea"}
+  {id:"cashea", label:"Cashea VE", cur:"cashea", sub:"Sistema = facturado del cierre de Cashea · lo financiado se cobra a Cashea"}
 ];
 const $ = id => document.getElementById(id);
 const n = v => { const x = parseFloat(v); return isFinite(x) ? x : 0; };
@@ -253,15 +253,19 @@ let casheaData = {}; // fecha -> {facturado, financiado, ordenes, leidoEn}, carg
 function applyCashea(){
   const c = casheaData[state.fecha];
   if (!c) return false;
-  if (state.conteo.cashea_fact!==undefined && state.conteo.cashea_fact!=="") return false;
+  // Si alguien escribió los montos a mano, no se pisan; si vinieron de Cashea, se actualizan.
+  const auto = state.casheaAuto || {};
+  const cur = state.conteo.cashea_fact;
+  if (cur!==undefined && cur!=="" && cur!==auto.fact) return false;
   state.conteo.cashea_fact = String(c.facturado ?? "");
   state.conteo.cashea_fin = String(c.financiado ?? "");
+  state.casheaAuto = {fact: state.conteo.cashea_fact, fin: state.conteo.cashea_fin};
   return true;
 }
 
 function blank(fecha){
   return {fecha, tasa:"", responsable:"", fondoUsd:"", fondoBs:"", contUsd:"", contBs:"",
-    sistema:{}, conteo:{}, extras:[], egresos:[], notas:"", pedidos:0, fuente:"manual"};
+    sistema:{}, conteo:{}, extras:[], egresos:[], notas:"", pedidos:0, fuente:"manual", shopifyCashea:""};
 }
 
 function gatewayToId(g){
@@ -290,7 +294,7 @@ function buildRows(){
       : m.cur==="cashea" ? `<div class="cz"><label for="c_cashea_fact">Facturado</label><input type="number" step="any" inputmode="decimal" id="c_cashea_fact" placeholder="$ Cashea" value="${state.conteo.cashea_fact ?? ""}"><label for="c_cashea_fin">Financiado</label><input type="number" step="any" inputmode="decimal" id="c_cashea_fin" placeholder="$ Cashea" value="${state.conteo.cashea_fin ?? ""}"></div>`
       : `<input type="number" step="any" inputmode="decimal" id="c_${m.id}" placeholder="${m.cur==="Bs"?"Bs":"$"}" value="${state.conteo[m.id] ?? ""}">`;
     tr.innerHTML = `<td><span class="mname">${esc(m.label)}</span>${m.sub?`<span class="sub">${esc(m.sub)}</span>`:m.cur==="Bs"?'<span class="sub">Contar en Bs</span>':""}</td>
-      <td><input type="number" step="any" inputmode="decimal" id="s_${m.id}" value="${sysVal}" placeholder="0.00"></td>
+      <td>${m.cur==="cashea" ? '<span class="num" data-sys>—</span><span class="sub">del cierre de Cashea</span>' : `<input type="number" step="any" inputmode="decimal" id="s_${m.id}" value="${sysVal}" placeholder="0.00">`}</td>
       <td>${realCell}<span class="sub num" data-hint></span></td>
       <td class="num" data-real></td><td class="num" data-dif></td><td data-st></td>`;
     tb.appendChild(tr);
@@ -320,7 +324,7 @@ function calc(){
   const egr = state.egresos.reduce((a,e)=>a+n(e.monto),0);
   const rows = {}; let ventas=0, dif=0, faltaContar=false;
   for (const m of allMethods()){
-    const sys = n(state.sistema[m.id]); ventas += sys;
+    const sys = m.cur==="cashea" ? n(state.conteo.cashea_fact) : n(state.sistema[m.id]); ventas += sys;
     let real=null, d=null;
     if (m.cur==="cash"){
       const esperado = n(state.fondoUsd) + (tasa? n(state.fondoBs)/tasa : 0) + sys - egr;
@@ -330,14 +334,13 @@ function calc(){
       rows[m.id] = {sys, real: contado?real:null, dif:d, esperado};
       if (!contado && sys>0) faltaContar = true;
     } else if (m.cur==="cashea"){
-      // El POS registra la venta completa como Cashea; la inicial entró por otros métodos y aquí se compensa.
-      // Cashea factura a otra tasa que el POS, así que la inicial se pasa a dólares del POS en proporción.
-      const fact = n(state.conteo.cashea_fact), fin = n(state.conteo.cashea_fin);
-      const hasC = state.conteo.cashea_fact!==undefined && state.conteo.cashea_fact!=="" && fact>0;
-      const iniC = hasC ? Math.max(0, fact - fin) : 0;
-      const ini = hasC ? (sys ? iniC * sys / fact : iniC) : 0;
+      // Sistema = facturado según el cierre de Cashea (no lo que registró Shopify). Por cobrar = financiado.
+      // La inicial (facturado − financiado) entró por otros métodos y aquí se compensa.
+      const fact = sys, fin = n(state.conteo.cashea_fin);
+      const hasC = fact>0;
+      const ini = hasC ? Math.max(0, fact - fin) : 0;
       d = ini ? -ini : null;
-      rows[m.id] = {sys, real: sys - ini, dif: ini ? -ini : null, inicial: ini || null, iniC, fact: hasC?fact:null, fin: hasC?fin:null};
+      rows[m.id] = {sys, real: hasC ? fin : null, dif: d, inicial: ini || null, iniC: ini, fact: hasC?fact:null, fin: hasC?fin:null};
     } else {
       const raw = state.conteo[m.id];
       if (raw!==undefined && raw!==""){
@@ -349,7 +352,7 @@ function calc(){
     if (d!==null) dif += d;
   }
   const cz = rows.cashea;
-  return {tasa, egr, rows, ventas, dif, faltaContar, cashea: cz.real, inicial: cz.inicial};
+  return {tasa, egr, rows, ventas, dif, faltaContar, cashea: cz.real ?? 0, inicial: cz.inicial};
 }
 
 function pill(d, m, sys){
@@ -374,7 +377,10 @@ function recompute(){
     if (m.cur==="cashea"){
       const cd = casheaData[state.fecha];
       const parts = [];
-      if (r.fact!==null) parts.push(`Inicial ${usd(r.iniC)} en Cashea${r.sys && Math.abs(r.inicial - r.iniC)>=0.01 ? ` = ${usd(r.inicial)} a tasa del POS` : ""}; se compensa con el sobrante de los otros métodos.`);
+      const sc = tr.querySelector("[data-sys]"); if (sc) sc.textContent = r.fact!==null ? usd(r.fact) : "—";
+      if (r.fact!==null) parts.push(`Inicial ${usd(r.iniC)}; se compensa con el sobrante de los otros métodos.`);
+      else parts.push("Sin datos del cierre de Cashea para este día; escribe facturado y financiado.");
+      if (state.shopifyCashea) parts.push(`Shopify registró ${usd(n(state.shopifyCashea))} en Cashea (solo referencia).`);
       if (cd && cd.leidoEn) parts.push(`Leído de Cashea ${new Date(cd.leidoEn).toLocaleString("es-VE",{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"})}${cd.ordenes!=null?` · ${cd.ordenes} orden${cd.ordenes==1?"":"es"}`:""}.`);
       hint.textContent = parts.join(" ");
     }
@@ -451,6 +457,7 @@ async function traerShopify(){
   }
   state.sistema = {};
   for (const m of METHODS) state.sistema[m.id] = tot[m.id] ? tot[m.id].toFixed(2) : "";
+  state.shopifyCashea = tot.cashea ? tot.cashea.toFixed(2) : ""; state.sistema.cashea = "";
   state.extras = Object.keys(otros);
   for (const k of state.extras) state.sistema[k] = otros[k].toFixed(2);
   state.pedidos = data.pedidos||0; state.fuente = "shopify";
