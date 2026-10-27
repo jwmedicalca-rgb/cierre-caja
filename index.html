@@ -167,8 +167,12 @@ textarea{width:100%;min-height:64px;resize:vertical}
     <section class="panel" aria-labelledby="t-metodos">
       <div class="bar">
         <h2 id="t-metodos">Por forma de pago</h2>
-        <button class="primary" id="btnShopify" type="button">Traer ventas de Shopify</button>
+        <div class="actions">
+          <button id="btnCashea" type="button">Cargar Cashea</button>
+          <button class="primary" id="btnShopify" type="button">Traer ventas de Shopify</button>
+        </div>
       </div>
+      <div class="msg" id="casheaMsg" hidden></div>
       <div class="msg" id="shopMsg">Trae las ventas del POS del día, o escribe los montos del reporte a mano en la columna Sistema.</div>
       <div class="tbl">
         <table>
@@ -522,6 +526,43 @@ window.cierreAPI = {
     return {ok:true};
   }
 };
+
+/* ---------- botón Cargar Cashea: deja una solicitud que atiende el agente de la Mac mini ---------- */
+const CASHEA_ESPERA_MS = 90e3;
+let casheaTimer = null;
+function casheaMsg(text, cls){ const m=$("casheaMsg"); m.hidden=!text; m.className="msg"+(cls?" "+cls:""); m.textContent=text||""; }
+async function agenteVivo(){
+  const { data } = await sb.from("agente_cashea").select("visto_en").eq("id",1).maybeSingle();
+  return data && (Date.now() - new Date(data.visto_en).getTime() < 2*60e3);
+}
+async function pedirCashea(){
+  const btn = $("btnCashea");
+  btn.disabled = true; casheaMsg("Pidiendo los datos a Cashea…");
+  const vivo = await agenteVivo().catch(()=>false);
+  const { data, error } = await sb.from("solicitudes_cashea").insert({ estado: "pendiente" }).select("id").single();
+  if (error){
+    btn.disabled = false;
+    casheaMsg(/relation|does not exist|schema cache/i.test(error.message) ? "Falta crear las tablas del agente en Supabase (supabase/cashea-agente.sql)." : "No se pudo enviar la solicitud: " + error.message, "err");
+    return;
+  }
+  casheaMsg(vivo ? "La Mac mini está leyendo Cashea… unos segundos." : "Solicitud enviada, pero el agente de la Mac mini no ha dado señales en los últimos minutos. Si está apagada, la carga no va a llegar.", vivo ? "" : "err");
+  const id = data.id, t0 = Date.now();
+  clearInterval(casheaTimer);
+  casheaTimer = setInterval(async ()=>{
+    const { data: s } = await sb.from("solicitudes_cashea").select("estado,mensaje").eq("id", id).maybeSingle();
+    if (s && (s.estado==="listo" || s.estado==="error" || s.estado==="vencida")){
+      clearInterval(casheaTimer); btn.disabled = false;
+      if (s.estado==="listo"){
+        await cargarCashea(); applyCashea(); buildRows(); recompute();
+        casheaMsg("Cashea cargado · " + (s.mensaje||""), "ok");
+      } else casheaMsg("Cashea no se pudo cargar: " + (s.mensaje||s.estado), "err");
+    } else if (Date.now() - t0 > CASHEA_ESPERA_MS){
+      clearInterval(casheaTimer); btn.disabled = false;
+      casheaMsg("No hubo respuesta de la Mac mini en 90 segundos. Revisa que esté encendida y que el agente esté corriendo.", "err");
+    }
+  }, 2000);
+}
+$("btnCashea").addEventListener("click", pedirCashea);
 
 /* ---------- copiar resumen ---------- */
 $("btnCopiar").addEventListener("click", async ()=>{
