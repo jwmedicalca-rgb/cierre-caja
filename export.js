@@ -64,7 +64,13 @@ ${c.rows.cashea.fact!==null ? `<p class="pnote">Cashea: facturado ${usd(c.rows.c
     ${egr.length ? `<table class="pt pk">${egr.map(e=>`<tr><td>${h(e.concepto||"Sin concepto")}</td><td>${usd(n(e.monto))}</td></tr>`).join("")}</table>` : `<p class="pnote">Sin salidas registradas.</p>`}
   </div>
 </div>
-<div class="pres"><div><span>Resultado</span><b>${h(veredicto)}</b></div><div><span>Ingreso al contado</span><b>${usd(c.contado)}</b>${c.contadoReal!==null ? `<span>Según conteo ${usd(c.contadoReal)}</span>` : ""}</div><div><span>Por cobrar a Cashea</span><b>${usd(c.cashea)}</b></div><div><span>Diferencia neta</span><b class="${difCls(c.dif)}">${usd(c.dif)}</b></div></div>
+<h3>Ingreso al contado</h3>
+<table class="pt pk">
+  <thead><tr><th>Forma de pago</th><th>Según Shopify</th><th>Según conteo</th><th>Diferencia</th></tr></thead>
+  <tbody>${c.contadoRows.map(x=>`<tr><td>${h(x.label)}</td><td>${usd(x.shopify)}</td><td>${x.incluida ? "incluida arriba" : x.contado===null ? "—" : usd(x.contado)}</td><td class="${x.incluida||x.contado===null ? "" : difCls(x.contado - x.shopify)}">${x.incluida||x.contado===null ? "—" : usd(x.contado - x.shopify)}</td></tr>`).join("") || `<tr><td colspan="4">Sin ingresos</td></tr>`}</tbody>
+  <tfoot><tr><td>Total</td><td>${usd(c.contadoShopify)}</td><td>${c.contadoReal===null ? "falta contar" : usd(c.contadoReal)}</td><td class="${c.contadoReal===null ? "" : difCls(c.contadoReal - c.contadoShopify)}">${c.contadoReal===null ? "—" : usd(c.contadoReal - c.contadoShopify)}</td></tr></tfoot>
+</table>
+<div class="pres"><div><span>Resultado</span><b>${h(veredicto)}</b></div><div><span>Contado según Shopify</span><b>${usd(c.contadoShopify)}</b></div><div><span>Contado según conteo</span><b>${c.contadoReal===null ? "—" : usd(c.contadoReal)}</b></div><div><span>Por cobrar a Cashea</span><b>${usd(c.cashea)}</b></div><div><span>Diferencia neta</span><b class="${difCls(c.dif)}">${usd(c.dif)}</b></div></div>
 ${state.notas ? `<h3>Notas</h3><p class="pnotes">${h(state.notas)}</p>` : ""}
 <div class="pfirmas"><div>Entregado por</div><div>Recibido por</div></div>
 <footer class="pf">Generado el ${new Date().toLocaleString("es-VE")}${M.web ? " · " + h(M.web) : ""}</footer>`;
@@ -152,8 +158,17 @@ ${state.notas ? `<h3>Notas</h3><p class="pnotes">${h(state.notas)}</p>` : ""}
     titulo("Resultado");
     ws.getCell("A"+r).value = veredicto; ws.getCell("A"+r).font = { bold:true, size:12 }; r++;
     ws.getCell("A"+r).value = "Ventas del día"; ws.getCell("B"+r).value = c.ventas; ws.getCell("B"+r).numFmt = money; r++;
-    ws.getCell("A"+r).value = "Ingreso al contado"; ws.getCell("B"+r).value = c.contado; ws.getCell("B"+r).numFmt = money; ws.getCell("A"+r).font = { bold:true }; ws.getCell("B"+r).font = { bold:true }; r++;
-    ws.getCell("A"+r).value = "Recibido según el conteo"; ws.getCell("B"+r).value = c.contadoReal; ws.getCell("B"+r).numFmt = money; r++;
+    r++;
+    titulo("Ingreso al contado");
+    cabecera(["Forma de pago","Según Shopify","Según conteo","Diferencia ($)","",""]);
+    for (const x of c.contadoRows){
+      const row = ws.getRow(r);
+      row.values = [x.label, x.shopify, x.incluida ? "incluida arriba" : x.contado, x.incluida||x.contado===null ? null : x.contado - x.shopify];
+      [2,3,4].forEach(i=>row.getCell(i).numFmt = money); row.getCell(3).alignment = {horizontal:"right"};
+      borde(row); r++;
+    }
+    const tc = ws.getRow(r); tc.values = ["Total", c.contadoShopify, c.contadoReal, c.contadoReal===null ? null : c.contadoReal - c.contadoShopify]; tc.font = { bold:true };
+    [2,3,4].forEach(i=>tc.getCell(i).numFmt = money); tc.eachCell({includeEmpty:false}, cl=>cl.border={top:{style:"medium"}}); r += 2;
     ws.getCell("A"+r).value = "Diferencia neta"; ws.getCell("B"+r).value = c.dif; ws.getCell("B"+r).numFmt = money; ws.getCell("B"+r).font = { bold:true }; r++;
     ws.getCell("A"+r).value = "Por cobrar a Cashea"; ws.getCell("B"+r).value = c.cashea; ws.getCell("B"+r).numFmt = money; r += 2;
     if (state.notas){ titulo("Notas"); ws.mergeCells(`A${r}:F${r+2}`); const cl = ws.getCell("A"+r); cl.value = state.notas; cl.alignment = { wrapText:true, vertical:"top" }; r += 4; }
@@ -164,10 +179,10 @@ ${state.notas ? `<h3>Notas</h3><p class="pnotes">${h(state.notas)}</p>` : ""}
     const fechas = Object.keys(saved).sort();
     if (fechas.length){
       const hs = wb.addWorksheet("Historial");
-      hs.columns = [{header:"Fecha",key:"f",width:12},{header:"Responsable",key:"r",width:22},{header:"Ventas POS ($)",key:"v",width:15},{header:"Ingreso al contado ($)",key:"k",width:20},{header:"Cashea por cobrar ($)",key:"c",width:20},{header:"Salidas ($)",key:"e",width:12},{header:"Diferencia ($)",key:"d",width:14},{header:"Estado",key:"s",width:22}];
+      hs.columns = [{header:"Fecha",key:"f",width:12},{header:"Responsable",key:"r",width:22},{header:"Ventas POS ($)",key:"v",width:15},{header:"Contado Shopify ($)",key:"k",width:18},{header:"Contado según conteo ($)",key:"kr",width:22},{header:"Cashea por cobrar ($)",key:"c",width:20},{header:"Salidas ($)",key:"e",width:12},{header:"Diferencia ($)",key:"d",width:14},{header:"Estado",key:"s",width:22}];
       hs.getRow(1).eachCell(cl=>{ cl.font={bold:true,color:{argb:"FFFFFFFF"}}; cl.fill={type:"pattern",pattern:"solid",fgColor:{argb:azul}}; });
-      for (const f of fechas){ const d = saved[f]; hs.addRow({f, r:d.responsable||"", v:n(d.ventasUsd), k: d.contadoUsd!=null ? n(d.contadoUsd) : n(d.ventasUsd)-n(d.casheaUsd), c:n(d.casheaUsd), e:n(d.egresosUsd), d:n(d.diferenciaUsd), s:d.estado||""}); }
-      ["v","k","c","e","d"].forEach(k=>hs.getColumn(k).numFmt = money);
+      for (const f of fechas){ const d = saved[f]; hs.addRow({f, r:d.responsable||"", v:n(d.ventasUsd), k: d.contadoUsd!=null ? n(d.contadoUsd) : n(d.ventasUsd)-n(d.casheaUsd), kr: d.contadoRealUsd!=null ? n(d.contadoRealUsd) : null, c:n(d.casheaUsd), e:n(d.egresosUsd), d:n(d.diferenciaUsd), s:d.estado||""}); }
+      ["v","k","kr","c","e","d"].forEach(k=>hs.getColumn(k).numFmt = money);
       hs.views = [{state:"frozen", ySplit:1}];
     }
 

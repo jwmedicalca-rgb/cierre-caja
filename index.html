@@ -71,9 +71,14 @@ tr.info td{color:var(--muted)}
 .neg{color:var(--bad)} .pos{color:var(--warn)}
 .kv{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
 .kv span:first-child{color:var(--muted)}
-.kv-main span{color:var(--ink)!important;font-weight:600}
-.kv-main .num{font-size:1.05rem}
-.kv-sub{font-size:.88rem;padding-left:12px}
+.ict table{width:100%;min-width:0;border-collapse:collapse;font-size:.88rem}
+.ict th{font-size:.7rem;padding:4px 4px 6px}
+.ict th:first-child{text-align:left;color:var(--ink);font-family:var(--f-display);font-size:.8rem;letter-spacing:.03em}
+.ict td{padding:5px 4px;border-bottom:1px solid var(--line)}
+.ict td:first-child{color:var(--muted)}
+.ict tr.inc td{font-style:italic}
+.ict tfoot td{border-bottom:0;border-top:1.5px solid var(--ink);font-weight:700;color:var(--ink)!important;padding-top:7px}
+.ict .empty{text-align:left;padding:6px 4px}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .two input{width:100%}
 .egr{display:flex;flex-direction:column;gap:8px}
@@ -209,8 +214,13 @@ textarea{width:100%;min-height:64px;resize:vertical}
         <h2 id="t-res">Resultado</h2>
         <div class="kv"><span>Ventas del día</span><span class="num" id="rVentas">$0.00</span></div>
         <div class="kv"><span>Pedidos</span><span class="num" id="rPedidos">0</span></div>
-        <div class="kv kv-main"><span>Ingreso al contado</span><span class="num" id="rContado">$0.00</span></div>
-        <div class="kv kv-sub"><span>Recibido según el conteo</span><span class="num" id="rContadoReal">—</span></div>
+        <div class="ict">
+          <table aria-label="Ingreso al contado">
+            <thead><tr><th>Ingreso al contado</th><th>Shopify</th><th>Contado</th></tr></thead>
+            <tbody id="rContadoRows"></tbody>
+            <tfoot><tr><td>Total</td><td class="num" id="rContado">$0.00</td><td class="num" id="rContadoReal">—</td></tr></tfoot>
+          </table>
+        </div>
         <div class="kv"><span>Por cobrar a Cashea (financiado)</span><span class="num" id="rCashea">$0.00</span></div>
         <div class="kv"><span>Salidas de efectivo</span><span class="num" id="rEgr">$0.00</span></div>
         <div class="kv total"><span>Diferencia neta</span><span class="num" id="rDif">$0.00</span></div>
@@ -364,9 +374,25 @@ function calc(){
   const cashea = cz.real ?? 0;
   // Ingreso al contado: lo que entró hoy en dinero (todas las formas de pago + la inicial de Cashea), sin lo financiado.
   const contado = ventas - cashea;
-  // Según el conteo: lo registrado al contado más la diferencia contada (faltante o sobrante).
-  const contadoReal = faltaContar ? null : contado + dif;
-  return {tasa, egr, rows, ventas, dif, faltaContar, cashea, inicial: cz.inicial, contado, contadoReal};
+  // Detalle por forma de pago: lo que dice Shopify y lo que se contó (Shopify + diferencia contada).
+  const contadoRows = [];
+  let contadoShopify = 0, contadoContado = 0, contadoFalta = false;
+  for (const m of allMethods()){
+    if (m.cur==="cashea") continue;
+    const r = rows[m.id];
+    const cont = r.dif===null || r.dif===undefined ? (r.sys ? null : 0) : r.sys + r.dif;
+    if (!r.sys && !cont) continue;
+    contadoRows.push({label: m.label, shopify: r.sys, contado: cont});
+    contadoShopify += r.sys;
+    if (cont===null) contadoFalta = true; else contadoContado += cont;
+  }
+  const ini = cz.inicial || 0;
+  // Shopify registra la venta Cashea completa; la inicial entró por otros métodos, así que en la columna Shopify se suma aparte
+  // y en la columna contado ya viene dentro de lo contado en cada método.
+  if (ini) contadoRows.push({label: "Inicial de Cashea", shopify: ini, contado: null, incluida: true});
+  contadoShopify += ini;
+  const contadoReal = contadoFalta ? null : contadoContado;
+  return {tasa, egr, rows, ventas, dif, faltaContar, cashea, inicial: cz.inicial, contado, contadoShopify, contadoReal, contadoRows};
 }
 
 function pill(d, m, sys){
@@ -405,8 +431,12 @@ function recompute(){
   $("rVentas").textContent = usd(c.ventas);
   $("rPedidos").textContent = state.pedidos || "—";
   $("rCashea").textContent = usd(c.cashea);
-  $("rContado").textContent = usd(c.contado);
-  $("rContadoReal").textContent = c.contadoReal===null ? "falta contar" : usd(c.contadoReal);
+  $("rContado").textContent = usd(c.contadoShopify);
+  const rcr = $("rContadoReal");
+  rcr.textContent = c.contadoReal===null ? "falta contar" : usd(c.contadoReal);
+  rcr.className = "num " + (c.contadoReal===null || Math.abs(c.contadoReal - c.contadoShopify)<TOL ? "" : c.contadoReal < c.contadoShopify ? "neg" : "pos");
+  $("rContadoRows").innerHTML = c.contadoRows.length ? c.contadoRows.map(x=>`<tr${x.incluida?' class="inc"':""}><td>${esc(x.label)}</td><td class="num">${usd(x.shopify)}</td><td class="num">${x.incluida ? "incluida" : x.contado===null ? "—" : usd(x.contado)}</td></tr>`).join("")
+    : `<tr><td colspan="3" class="empty">Sin ingresos todavía</td></tr>`;
   $("rEgr").textContent = usd(c.egr);
   const rd = $("rDif"); rd.textContent = usd(c.dif);
   rd.className = "num " + (Math.abs(c.dif)<TOL?"":c.dif<0?"neg":"pos");
@@ -489,7 +519,7 @@ async function guardar(){
   const m = $("saveMsg");
   const {c, estado} = recompute();
   const doc = JSON.parse(JSON.stringify(state));
-  Object.assign(doc, {ventasUsd:+c.ventas.toFixed(2), diferenciaUsd:+c.dif.toFixed(2), casheaUsd:+c.cashea.toFixed(2), contadoUsd:+c.contado.toFixed(2), contadoRealUsd: c.contadoReal===null ? null : +c.contadoReal.toFixed(2), egresosUsd:+c.egr.toFixed(2), estado, guardadoEn:new Date().toISOString()});
+  Object.assign(doc, {ventasUsd:+c.ventas.toFixed(2), diferenciaUsd:+c.dif.toFixed(2), casheaUsd:+c.cashea.toFixed(2), contadoUsd:+c.contadoShopify.toFixed(2), contadoRealUsd: c.contadoReal===null ? null : +c.contadoReal.toFixed(2), egresosUsd:+c.egr.toFixed(2), estado, guardadoEn:new Date().toISOString()});
   const b = $("btnGuardar"); b.disabled = true;
   const { error } = await sb.from("cierres").upsert({
     fecha: state.fecha, data: doc, estado, ventas_usd: doc.ventasUsd, diferencia_usd: doc.diferenciaUsd, updated_at: doc.guardadoEn
@@ -510,7 +540,7 @@ function renderHist(){
     const d = saved[f]; const dif = n(d.diferenciaUsd);
     const st = d.estado==="cuadrado" ? '<span class="pill p-ok">Cuadrado</span>' : dif<-TOL ? '<span class="pill p-bad">Faltante</span>' : dif>TOL ? '<span class="pill p-warn">Sobrante</span>' : '<span class="pill p-warn">Incompleto</span>';
     const r = document.createElement("button"); r.type="button"; r.className = "hrow" + (f===state.fecha?" cur":"");
-    r.innerHTML = `<span class="num">${f}</span><span class="hide-s">${esc(d.responsable||"—")} · ventas ${usd(n(d.ventasUsd))}${d.contadoUsd!=null ? ` · contado ${usd(n(d.contadoUsd))}` : ""}</span><span class="num ${Math.abs(dif)<TOL?"":dif<0?"neg":"pos"}">${usd(dif)}</span>${st}`;
+    r.innerHTML = `<span class="num">${f}</span><span class="hide-s">${esc(d.responsable||"—")} · ventas ${usd(n(d.ventasUsd))}${d.contadoUsd!=null ? ` · contado ${usd(n(d.contadoUsd))}${d.contadoRealUsd!=null && Math.abs(n(d.contadoRealUsd)-n(d.contadoUsd))>=TOL ? ` / contado real ${usd(n(d.contadoRealUsd))}` : ""}` : ""}</span><span class="num ${Math.abs(dif)<TOL?"":dif<0?"neg":"pos"}">${usd(dif)}</span>${st}`;
     r.addEventListener("click",()=>{ loadState(saved[f]); window.scrollTo({top:0,behavior:"smooth"}); });
     box.appendChild(r);
   }
@@ -586,7 +616,7 @@ $("btnCopiar").addEventListener("click", async ()=>{
     lines.push(`${m.label}: ${usd(r.sys)} → ${d}`);
   }
   if (c.egr) lines.push(`Salidas de efectivo: ${usd(c.egr)}`);
-  lines.push("", `Ventas del día: ${usd(c.ventas)}${state.pedidos?` (${state.pedidos} pedidos POS)`:""}`, `Ingreso al contado: ${usd(c.contado)}${c.contadoReal!==null && Math.abs(c.contadoReal-c.contado)>=TOL ? ` (recibido según conteo ${usd(c.contadoReal)})` : ""}`, `Por cobrar a Cashea: ${usd(c.cashea)}`, `Diferencia neta: ${usd(c.dif)}`);
+  lines.push("", `Ventas del día: ${usd(c.ventas)}${state.pedidos?` (${state.pedidos} pedidos POS)`:""}`, `Ingreso al contado según Shopify: ${usd(c.contadoShopify)}`, `Ingreso al contado según conteo: ${c.contadoReal===null ? "falta contar" : usd(c.contadoReal)}`, `Por cobrar a Cashea: ${usd(c.cashea)}`, `Diferencia neta: ${usd(c.dif)}`);
   if (state.notas) lines.push(`Notas: ${state.notas}`);
   const text = lines.filter((l,i,a)=>!(l===""&&a[i-1]==="")).join("\n");
   const m = $("saveMsg");
