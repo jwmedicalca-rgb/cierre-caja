@@ -88,6 +88,9 @@ tr.info td{color:var(--muted)}
 .verdict{border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:4px}
 .verdict.ok{background:var(--ok-soft);color:var(--ok)} .verdict.bad{background:var(--bad-soft);color:var(--bad)} .verdict.warn{background:var(--warn-soft);color:var(--warn)}
 .verdict b{font-family:var(--f-display);font-size:1.35rem}
+.vcont{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;padding-top:10px;border-top:1px solid currentColor}
+.vcont small{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;opacity:.85}
+.vcont strong{font-size:1.1rem}
 textarea{width:100%;min-height:64px;resize:vertical}
 .actions{display:flex;flex-wrap:wrap;gap:8px}
 .hist{display:flex;flex-direction:column}
@@ -449,7 +452,9 @@ function recompute(){
   else if (Math.abs(c.dif)<TOL){ cls="ok"; t="Caja cuadrada"; s="Lo contado coincide con lo vendido."; }
   else if (c.dif<0){ cls="bad"; t="Faltante de " + usd(-c.dif); s="Revisa los métodos marcados en rojo."; }
   else { cls="warn"; t="Sobrante de " + usd(c.dif); s="Hay más dinero del registrado; revisa ventas sin cargar en el POS."; }
-  v.className = "verdict " + cls; v.innerHTML = `<b>${esc(t)}</b><span>${esc(s)}</span>`;
+  v.className = "verdict " + cls;
+  const vc = c.contadoShopify || c.contadoReal ? `<div class="vcont"><div><small>Contado según Shopify</small><strong class="num">${usd(c.contadoShopify)}</strong></div><div><small>Contado según conteo</small><strong class="num">${c.contadoReal===null ? "falta contar" : usd(c.contadoReal)}</strong></div></div>` : "";
+  v.innerHTML = `<b>${esc(t)}</b><span>${esc(s)}</span>${vc}`;
   return {c, estado: cls==="ok"?"cuadrado":t};
 }
 
